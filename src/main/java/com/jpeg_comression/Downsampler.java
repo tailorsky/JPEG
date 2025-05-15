@@ -1,11 +1,16 @@
 package com.jpeg_comression;
 
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class Downsampler {
     public static void main(String[] args) throws IOException {
-        File inputFile = new File("PictureBWD.yuv");
-        File outputFile = new File("PictureBWDDownsampled.yuv");
+        File inputFile = new File("Big_bw_dithered.yuv");
+        File outputFile = new File("Big_bw_ditheredDownsampled.yuv");
 
         try (DataInputStream inputStream = new DataInputStream(new FileInputStream(inputFile));
              DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(outputFile))) {

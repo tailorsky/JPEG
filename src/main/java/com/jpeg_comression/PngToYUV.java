@@ -1,8 +1,12 @@
 package com.jpeg_comression;
 
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
 
 public class PngToYUV {
 
@@ -53,7 +57,7 @@ public class PngToYUV {
 
     public static void main(String[] args) {
         try {
-            convertToYUVPlanar("PictureBWD.png", "PictureBWD.yuv");
+            convertToYUVPlanar("Big_bw_dithered.png", "Big_bw_dithered.yuv");
         } catch (IOException e) {
             e.printStackTrace();
         }

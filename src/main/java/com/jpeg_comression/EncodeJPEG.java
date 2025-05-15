@@ -1,41 +1,51 @@
 package com.jpeg_comression;
 
-import java.io.*;
-import java.util.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EncodeJPEG {
     public static final int BLOCK_SIZE = 8;
 
-    public static void EncodeJPG(File inputFile, File outputFile, int quality){
-        try (DataInputStream inputStream = new DataInputStream(new FileInputStream(inputFile)); DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(outputFile))){
+    public static void encode(File inputFile, File outputFile, int quality) {
+        try (
+            DataInputStream inputStream = new DataInputStream(new FileInputStream(inputFile));
+            DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(outputFile))
+        ) {
             int width = inputStream.readInt();
             int height = inputStream.readInt();
-            
-            byte[] data = inputStream.readAllBytes();
 
-            int[][] Y = BlockSplitter.extractPlanarChannel(data, width, height, "Y");
-            int[][] Cb = BlockSplitter.extractPlanarChannel(data, width, height, "Cb");
-            int[][] Cr = BlockSplitter.extractPlanarChannel(data, width, height, "Cr");
+            byte[] rawImageData = inputStream.readAllBytes();
 
-            List<double[][]> Ybl = BlockSplitter.splitIntoBlocks(Y);
-            List<double[][]> Cbbl = BlockSplitter.splitIntoBlocks(Cb);
-            List<double[][]> Crbl = BlockSplitter.splitIntoBlocks(Cr);
+            int[][] yPlane  = BlockSplitter.extractPlanarChannel(rawImageData, width, height, "Y");
+            int[][] cbPlane = BlockSplitter.extractPlanarChannel(rawImageData, width, height, "Cb");
+            int[][] crPlane = BlockSplitter.extractPlanarChannel(rawImageData, width, height, "Cr");
 
-            List<double[][]> YCbCrBlocked = new ArrayList<>();
-            YCbCrBlocked.addAll(Ybl);
-            YCbCrBlocked.addAll(Cbbl);
-            YCbCrBlocked.addAll(Crbl);
+            List<double[][]> yBlocks  = BlockSplitter.splitIntoBlocks(yPlane);
+            List<double[][]> cbBlocks = BlockSplitter.splitIntoBlocks(cbPlane);
+            List<double[][]> crBlocks = BlockSplitter.splitIntoBlocks(crPlane);
 
-            List<double[][]> YCbCrDCT = DCTProcessor.processDCT(YCbCrBlocked);
-            List<int[][]> YCbCrQuantized = Quantizer.processQuantize(width, height, YCbCrDCT, quality);
-            
-            List<int[][]> YCbCtDiff = DCDifferenceProcessor.encodeDCDifference(YCbCrQuantized);
+            List<double[][]> allBlocks = new ArrayList<>();
+            allBlocks.addAll(yBlocks);
+            allBlocks.addAll(cbBlocks);
+            allBlocks.addAll(crBlocks);
 
-            List<int[]> YCbCrZigzag = ZigZagScanner.processScanner(YCbCtDiff);
+            List<double[][]> dctBlocks = DCTProcessor.processDCT(allBlocks);
 
-            List<String> ENCODED = HuffmanEncoding.processEncoding(width, height, YCbCrZigzag);
+            List<int[][]> quantizedBlocks = Quantizer.processQuantize(width, height, dctBlocks, quality);
 
-            ListToByteArray.writeEncodedMessageToFile(outputStream, ENCODED, width, height);
+            List<int[][]> dcDiffBlocks = DCDifferenceProcessor.encodeDCDifference(quantizedBlocks);
+
+            List<int[]> zigzagScanned = ZigZagScanner.processScanner(dcDiffBlocks);
+
+            List<String> huffmanEncoded = HuffmanEncoding.processEncoding(width, height, zigzagScanned);
+
+            ListToByteArray.writeEncodedMessageToFile(outputStream, huffmanEncoded, width, height);
+
         } catch (Exception e) {
             e.printStackTrace();
         }

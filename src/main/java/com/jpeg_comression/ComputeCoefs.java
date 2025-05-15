@@ -1,16 +1,19 @@
 package com.jpeg_comression;
 
-import java.io.*;
-import java.util.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ComputeCoefs {
 
     public static void main(String[] args) {
-        calculateAndWriteCSV("PictureBWDCoefs.csv");
+        calculateAndWriteCSV("LennaGRCoefs.csv");
     }
 
     public static void calculateAndWriteCSV(String outputFileName) {
-        File originalFile = new File("PictureBWD.yuv");
+        File originalFile = new File("LennaGR.yuv");
         List<String> lines = new ArrayList<>();
 
         if (!originalFile.exists() || originalFile.length() == 0) {
@@ -22,7 +25,7 @@ public class ComputeCoefs {
         lines.add("quality,compression_ratio");
 
         for (int i = 0; i <= 100; i += 5) {
-            String filename = "PictureBWD" + i + ".hjpg";
+            String filename = "LennaGR" + i + ".hjpg";
             File compressedFile = new File(filename);
 
             if (!compressedFile.exists() || compressedFile.length() == 0) {

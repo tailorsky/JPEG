@@ -1,45 +1,52 @@
 package com.jpeg_comression;
 
-import java.util.*;
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.util.List;
 
 public class DecodeJPEG {
-    public static void DecodeJPG(File inputFile, String outputFile){
-        try (DataInputStream inputStream = new DataInputStream(new FileInputStream(inputFile)); DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(outputFile))){
+
+    public static void decode(File inputFile, String outputFile, int quality) {
+        try (
+            DataInputStream inputStream = new DataInputStream(new FileInputStream(inputFile));
+            DataOutputStream outputStream = new DataOutputStream(new FileOutputStream(outputFile))
+        ) {
             int width = inputStream.readInt();
             int height = inputStream.readInt();
 
-            List<String> fromFile = ListToByteArray.fileToBitString(inputStream);
+            List<String> bitStrings = ListToByteArray.fileToBitString(inputStream);
 
-            List<int[]> DECODED = HuffmanEncoding.processDecoding(width, height, fromFile);
+            List<int[]> decodedCoefficients = HuffmanEncoding.processDecoding(width, height, bitStrings);
 
-            List<int[][]> antizigzag = ZigZagScanner.processInverseScanner(DECODED);
+            List<int[][]> reorderedBlocks = ZigZagScanner.processInverseScanner(decodedCoefficients);
 
-            List<int[][]> AntiDiff = DCDifferenceProcessor.decodeDCDifference(antizigzag);
+            List<int[][]> blocksWithRestoredDC = DCDifferenceProcessor.decodeDCDifference(reorderedBlocks);
 
-            List<double[][]> AntiQuant = Quantizer.processDequantize(width, height, AntiDiff);
+            List<double[][]> dequantizedBlocks = Quantizer.processDequantize(width, height, blocksWithRestoredDC, quality);
 
-            List<double[][]> antiDCT = DCTProcessor.processiDCT(AntiQuant);
+            List<double[][]> spatialBlocks = DCTProcessor.processiDCT(dequantizedBlocks);
 
-            List<double[][]> Yantiblock = BlockSplitter.separateBlocksByChannels(width, height, antiDCT, "Y");
-            List<double[][]> Cbantiblock = BlockSplitter.separateBlocksByChannels(width, height, antiDCT, "Cb");
-            List<double[][]> Crantiblock = BlockSplitter.separateBlocksByChannels(width, height, antiDCT, "Cr");
+            List<double[][]> yBlocks  = BlockSplitter.separateBlocksByChannels(width, height, spatialBlocks, "Y");
+            List<double[][]> cbBlocks = BlockSplitter.separateBlocksByChannels(width, height, spatialBlocks, "Cb");
+            List<double[][]> crBlocks = BlockSplitter.separateBlocksByChannels(width, height, spatialBlocks, "Cr");
 
-            int[][] YH = BlockSplitter.blockJoiner(width, height, Yantiblock, "Y");
-            int[][] CbH = BlockSplitter.blockJoiner(width, height, Cbantiblock, "Cb");
-            int[][] CrH = BlockSplitter.blockJoiner(width, height, Crantiblock, "Cr");
+            int[][] yPlane  = BlockSplitter.blockJoiner(width, height, yBlocks, "Y");
+            int[][] cbPlane = BlockSplitter.blockJoiner(width, height, cbBlocks, "Cb");
+            int[][] crPlane = BlockSplitter.blockJoiner(width, height, crBlocks, "Cr");
 
             outputStream.writeInt(width);
             outputStream.writeInt(height);
 
-            byte[] picture = BlockSplitter.combineChannels(YH, CbH, CrH, width, height);
-            picture = BlockSplitter.upsample420to444(picture, width, height);
+            byte[] yuvData = BlockSplitter.combineChannels(yPlane, cbPlane, crPlane, width, height);
+            yuvData = BlockSplitter.upsample420to444(yuvData, width, height);
 
-            picture = YUVtoRAW.yuv444ToRgb24(picture, width, height);
-            RAWtoPNG.saveRgb24ToPng(picture, width, height, outputFile);
-            //outputStream.write(picture);
+            byte[] rgbData = YUVtoRAW.yuv444ToRgb24(yuvData, width, height);
 
-            //TestClass.displayYUV(outputFile);
+            RAWtoPNG.saveRgb24ToPng(rgbData, width, height, outputFile);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
