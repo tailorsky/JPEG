@@ -15,7 +15,7 @@ public class DCTProcessor {
             }
         }
     }
-    private static double[][] shiftBlockBeforeDCT(double[][] block) {
+    private static double[][] shiftBlockBeforeDCT(double[][] block) { //added
         double[][] shifted = new double[BLOCK_SIZE][BLOCK_SIZE];
         for (int y = 0; y < BLOCK_SIZE; y++) {
             for (int x = 0; x < BLOCK_SIZE; x++) {
